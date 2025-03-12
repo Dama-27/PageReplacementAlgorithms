@@ -4,42 +4,43 @@ import java.util.*;
 
 public class FIFO {
     public static Map<String, Object> fifo(int[] numbers, int numFrames) {
-        List<Integer> frames = new ArrayList<>(); // List of numbers
-        int hits = 0;
-        int misses = 0;
-        List<Map<String, Object>> result = new ArrayList<>(); // List of steps
-        List<Integer> tempFrames = new ArrayList<>(); // Temporary frames for display
+        // Validate input
+        if (numFrames <= 0) {
+            throw new IllegalArgumentException("Number of frames must be positive.");
+        }
+        if (numbers == null || numbers.length == 0) {
+            throw new IllegalArgumentException("Input array cannot be null or empty.");
+        }
+
+        Queue<Integer> frames = new LinkedList<>(); // FIFO queue for frames
+        int hitCount = 0, faultCount = 0;
+        List<Map<String, Object>> result = new ArrayList<>();
 
         for (int num : numbers) {
-            Map<String, Object> step = new HashMap<>(); // Step is a map
+            Map<String, Object> step = new HashMap<>();
             step.put("page", num);
 
-            if (frames.contains(num)) { // If num is in frames, it's a hit
-                hits++;
+            if (frames.contains(num)) { // Hit
+                hitCount++;
                 step.put("hit_miss", "Hit");
-            } else {
-                if (frames.size() < numFrames) { // If frames are not full, add the number
-                    frames.add(num);
-                    tempFrames.add(num);
-                } else { // Replace the oldest number
-                    if (tempFrames.contains(frames.get(0))) {
-                        int index = tempFrames.indexOf(frames.get(0));
-                        tempFrames.set(index, num);
-                    }
-                    frames.remove(0); // Remove the oldest number
-                    frames.add(num); // Add the new number
+            } else { // Miss
+                if (frames.size() == numFrames) {
+                    frames.poll(); // Remove oldest page (FIFO)
                 }
-                misses++;
+                frames.add(num); // Add new page to queue
+                faultCount++;
                 step.put("hit_miss", "Miss");
             }
 
-            step.put("frames", new ArrayList<>(tempFrames)); // Add frames to the step
-            result.add(step); // Add step to the result
+            // Store state of frames
+            step.put("frames", new ArrayList<>(frames));
+            result.add(step);
         }
 
+        // Construct final output
         Map<String, Object> output = new HashMap<>();
         output.put("result", result);
-        output.put("total_faults", misses);
+        output.put("total_faults", faultCount);
         return output;
     }
 }

@@ -4,44 +4,46 @@ import java.util.*;
 
 public class LRU {
     public static Map<String, Object> lru(int[] numbers, int numFrames) {
-        List<Integer> frames = new ArrayList<>();
-        int hits = 0;
-        int misses = 0;
+        // Validate input
+        if (numFrames <= 0) {
+            throw new IllegalArgumentException("Number of frames must be positive.");
+        }
+        if (numbers == null || numbers.length == 0) {
+            throw new IllegalArgumentException("Input array cannot be null or empty.");
+        }
+
+        LinkedHashSet<Integer> frames = new LinkedHashSet<>();
+        int hitCount = 0, faultCount = 0;
         List<Map<String, Object>> result = new ArrayList<>();
-        List<Integer> tempFrames = new ArrayList<>();
 
         for (int num : numbers) {
             Map<String, Object> step = new HashMap<>();
             step.put("page", num);
 
-            if (frames.contains(num)) {
-                hits++;
-                frames.remove((Integer) num); // Remove the number and add it to the end
+            if (frames.contains(num)) { // Hit
+                hitCount++;
+                frames.remove(num); // Remove and re-add to update recency
                 frames.add(num);
                 step.put("hit_miss", "Hit");
-            } else {
-                if (frames.size() < numFrames) {
-                    frames.add(num);
-                    tempFrames.add(num);
-                } else {
-                    if (tempFrames.contains(frames.get(0))) {
-                        int index = tempFrames.indexOf(frames.get(0));
-                        tempFrames.set(index, num);
-                    }
-                    frames.remove(0);
-                    frames.add(num);
+            } else { // Miss
+                if (frames.size() == numFrames) {
+                    Iterator<Integer> iterator = frames.iterator();
+                    frames.remove(iterator.next()); // Remove the oldest page
                 }
-                misses++;
+                frames.add(num); // Add new page
+                faultCount++;
                 step.put("hit_miss", "Miss");
             }
 
-            step.put("frames", new ArrayList<>(tempFrames));
+            // Store state of frames
+            step.put("frames", new ArrayList<>(frames));
             result.add(step);
         }
 
+        // Construct final output
         Map<String, Object> output = new HashMap<>();
         output.put("result", result);
-        output.put("total_faults", misses);
+        output.put("total_faults", faultCount);
         return output;
     }
 }
